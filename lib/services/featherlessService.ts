@@ -135,11 +135,49 @@ export async function generateFeatherlessJSON(
   const completion = await generateFeatherlessCompletion(messages, { ...options, temperature: 0.1 });
   
   try {
-    // Attempt to extract JSON from markdown wrappers
-    const jsonStr = completion.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(jsonStr);
-  } catch (error) {
+    // Clean and extract JSON from various response formats
+    let jsonStr = completion.trim();
+    
+    // Remove markdown code block wrappers (```json ... ```)
+    jsonStr = jsonStr.replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '');
+    
+    // Try to extract JSON object if wrapped in text
+    // Look for the first { and last } to extract potential JSON
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+    
+    // Clean up the string
+    jsonStr = jsonStr.trim();
+    
+    // Fix common JSON formatting issues
+    // Handle incomplete JSON by counting and fixing braces
+    const openBraces = (jsonStr.match(/\{/g) || []).length;
+    const closeBraces = (jsonStr.match(/\}/g) || []).length;
+    if (openBraces > closeBraces) {
+      jsonStr += '}'.repeat(openBraces - closeBraces);
+    }
+    
+    // Handle incomplete arrays
+    const openBrackets = (jsonStr.match(/\[/g) || []).length;
+    const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+    if (openBrackets > closeBrackets) {
+      jsonStr += ']'.repeat(openBrackets - closeBrackets);
+    }
+    
+    // Remove trailing commas before closing braces/brackets (common JSON formatting issue)
+    jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Parse and validate
+    const parsed = JSON.parse(jsonStr);
+    return parsed;
+    
+  } catch (error: any) {
     console.error("[FeatherlessService] Failed to parse JSON response:", completion);
-    throw new FeatherlessServiceError("Failed to parse AI response into JSON format.", 500);
+    console.error("[FeatherlessService] Parse error details:", error.message);
+    throw new FeatherlessServiceError("Failed to parse AI response into JSON format.", 500, error.message);
   }
 }
