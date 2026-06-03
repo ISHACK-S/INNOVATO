@@ -12,19 +12,21 @@ export async function POST(req: Request) {
     console.log(`[SkillGap API] Analyzing gap for ${targetRole}`)
 
     const systemPrompt = `You are a Skill Gap Intelligence AI. Your task is to analyze a student's current skills against the industry standard requirements for a specific target role.
-    
-You must return ONLY a JSON object exactly matching this structure:
+
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.
+
+Return a JSON object with this exact structure:
 {
   "readinessScore": number (0-100),
-  "presentSkills": string[],
-  "missingSkills": string[],
-  "recommendations": string[],
-  "learningOrder": string[]
+  "presentSkills": ["string"],
+  "missingSkills": ["string"],
+  "recommendations": ["string"],
+  "learningOrder": ["string"]
 }
 
 Ensure the learningOrder contains the missingSkills ordered logically for studying.`
 
-    const userPrompt = `Target Role: ${targetRole}\nCurrent Skills: ${skills.join(", ")}\n\nGenerate the skill gap analysis JSON.`
+    const userPrompt = `Analyze skill gap for target role: ${targetRole}\nCurrent Skills: ${skills.join(", ")}\n\nReturn only valid JSON matching the specified structure with no additional text or markdown.`
 
     const data = await generateFeatherlessJSON([
       { role: "system", content: systemPrompt },

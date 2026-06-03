@@ -487,12 +487,10 @@ export default function ProjectsPage() {
                   For {skill} • {level?.toUpperCase()} • {mode === "guide" ? "Step-by-step Guide" : "Project Ideas"}
                 </p>
 
-                {result.answer && (() => {
-                  // Try to parse JSON from the response
-                  const parsedData = parseJSONFromText(result.answer)
-                  
-                  // Check if we have project suggestions
-                  if (parsedData && parsedData.suggested_projects && Array.isArray(parsedData.suggested_projects) && parsedData.suggested_projects.length > 0) {
+                {result.projects ? (
+                  // Display project suggestions
+                  (() => {
+                    const projects = result.projects || []
                     return (
                       <div className="space-y-6">
                         {/* Welcome message */}
@@ -508,40 +506,217 @@ export default function ProjectsPage() {
                             <div>
                               <p className="text-foreground font-medium mb-1">Ready to build something amazing?</p>
                               <p className="text-sm text-muted-foreground leading-relaxed">
-                                Here are {parsedData.suggested_projects.length} project {parsedData.suggested_projects.length === 1 ? 'idea' : 'ideas'} tailored to your {level} level in {skill}.
+                                Here are {projects.length} project {projects.length === 1 ? 'idea' : 'ideas'} tailored to your {level} level in {skill}.
                               </p>
                             </div>
                           </div>
                         </motion.div>
                         
-                        <ProjectSuggestions projects={parsedData.suggested_projects} mode={mode} />
-                        
-                        {/* Call to action */}
+                        <ProjectSuggestions projects={projects} mode={mode} />
+                      </div>
+                    )
+                  })()
+                ) : result.guide ? (
+                  // Display implementation guide
+                  (() => {
+                    const guide = result.guide
+                    return (
+                      <div className="space-y-6">
+                        {/* Welcome message */}
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.5 }}
-                          className="p-5 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-violet-500/10 border border-blue-500/20 backdrop-blur-sm"
+                          className="p-5 rounded-xl bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-blue-500/10 border border-indigo-500/20 backdrop-blur-sm"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30">
-                              <Zap className="h-5 w-5 text-blue-400" />
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/30 shrink-0">
+                              <Code className="h-5 w-5 text-indigo-400" />
                             </div>
-                            <div className="flex-1">
-                              <p className="text-foreground font-semibold mb-1">Ready to start building?</p>
-                              <p className="text-sm text-muted-foreground">
-                                Select a project above to receive detailed step-by-step guidance and start your learning journey!
-                              </p>
+                            <div>
+                              <p className="text-foreground font-medium mb-1">{guide.projectTitle}</p>
+                              <p className="text-sm text-muted-foreground leading-relaxed">{guide.overview}</p>
                             </div>
                           </div>
                         </motion.div>
+
+                        {/* Learning Outcomes */}
+                        {guide.learningOutcomes && guide.learningOutcomes.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 space-y-3"
+                          >
+                            <p className="font-bold text-green-300 flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5" />
+                              Learning Outcomes
+                            </p>
+                            <ul className="space-y-2">
+                              {guide.learningOutcomes.map((outcome: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-muted-foreground text-sm">
+                                  <span className="text-green-400 mt-1 flex-shrink-0">✓</span>
+                                  <span>{outcome}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        )}
+
+                        {/* Tools Needed */}
+                        {guide.tools && guide.tools.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 space-y-3"
+                          >
+                            <p className="font-bold text-blue-300 flex items-center gap-2">
+                              <Zap className="h-5 w-5" />
+                              Tools Needed
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {guide.tools.map((tool: string, idx: number) => (
+                                <span key={idx} className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm">
+                                  {tool}
+                                </span>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Project Structure */}
+                        {guide.projectStructure && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 rounded-xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-500/20 space-y-3"
+                          >
+                            <p className="font-bold text-violet-300">📁 Project Structure</p>
+                            <p className="text-sm text-muted-foreground mb-2">{guide.projectStructure.description}</p>
+                            {guide.projectStructure.folders && (
+                              <ul className="space-y-1 text-sm">
+                                {guide.projectStructure.folders.map((folder: string, idx: number) => (
+                                  <li key={idx} className="flex items-center gap-2 text-violet-300/80">
+                                    <span>📂</span>
+                                    <code className="bg-background/50 px-2 py-1 rounded text-xs">{folder}</code>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </motion.div>
+                        )}
+
+                        {/* Step-by-Step Implementation */}
+                        {guide.steps && guide.steps.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-4"
+                          >
+                            <p className="font-bold text-indigo-300 flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5" />
+                              Step-by-Step Implementation
+                            </p>
+                            {guide.steps.map((step: any, idx: number) => (
+                              <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="p-6 rounded-xl bg-gradient-to-br from-indigo-950/40 via-background to-violet-950/30 border border-indigo-500/20 hover:border-indigo-500/40 transition-all space-y-3"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-sm">
+                                    {step.step}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-white text-lg">{step.title}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+                                  </div>
+                                </div>
+                                {step.details && (
+                                  <ul className="space-y-2 ml-11">
+                                    {step.details.map((detail: string, didx: number) => (
+                                      <li key={didx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                        <span className="text-indigo-400 mt-0.5 flex-shrink-0">•</span>
+                                        <span>{detail}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                                {step.expectedOutput && (
+                                  <div className="ml-11 p-3 rounded-lg bg-background/50 border border-indigo-500/20">
+                                    <p className="text-xs font-semibold text-indigo-400 mb-1">Expected Output:</p>
+                                    <p className="text-sm text-muted-foreground">{step.expectedOutput}</p>
+                                  </div>
+                                )}
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                        )}
+
+                        {/* Common Challenges */}
+                        {guide.commonChallenges && guide.commonChallenges.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 rounded-xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 space-y-3"
+                          >
+                            <p className="font-bold text-orange-300">⚠️ Common Challenges</p>
+                            <ul className="space-y-2">
+                              {guide.commonChallenges.map((challenge: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                  <span className="text-orange-400 mt-0.5 flex-shrink-0">!</span>
+                                  <span>{challenge}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        )}
+
+                        {/* Timeline */}
+                        {guide.estimatedTimeline && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 flex items-center gap-3"
+                          >
+                            <Clock className="h-5 w-5 text-indigo-400 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Estimated Timeline</p>
+                              <p className="font-semibold text-indigo-300">{guide.estimatedTimeline}</p>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Next Steps */}
+                        {guide.nextSteps && guide.nextSteps.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-6 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border border-teal-500/20 space-y-3"
+                          >
+                            <p className="font-bold text-teal-300">🚀 Next Steps After Completion</p>
+                            <ul className="space-y-2">
+                              {guide.nextSteps.map((step: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                  <span className="text-teal-400 mt-0.5 flex-shrink-0">→</span>
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        )}
                       </div>
                     )
-                  }
-                  
-                  // Otherwise, format as text
-                  return <FormattedText text={result.answer} />
-                })()}
+                  })()
+                ) : result.answer ? (
+                  // Fallback for old text responses
+                  <FormattedText text={result.answer} />
+                ) : (
+                  // Empty state
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No response received</p>
+                  </div>
+                )}
               </div>
 
               {/* Quick Tips Card */}

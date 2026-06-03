@@ -13,7 +13,9 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are a Career Path Explorer AI. Map out a comprehensive sequential progression pathway for a given target role, starting from entry-level up to senior/architect level.
 
-You must return ONLY a JSON object exactly matching this structure:
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.
+
+Return a JSON object with this exact structure:
 {
   "roles": [
     {
@@ -28,7 +30,9 @@ You must return ONLY a JSON object exactly matching this structure:
   ]
 }`
 
-    const userPrompt = `Target Role: ${targetRole}\n\nGenerate the career path progression JSON.`
+    const userPrompt = `Create a career progression pathway for this target role: ${targetRole}
+
+Return only valid JSON matching the specified structure. Do not include markdown formatting or any text outside the JSON object.`
 
     const data = await generateFeatherlessJSON([
       { role: "system", content: systemPrompt },

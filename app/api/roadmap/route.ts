@@ -15,23 +15,53 @@ export async function POST(req: Request) {
     console.log('[Roadmap API] Generating roadmap for', skill)
 
     const systemPrompt = `You are an expert curriculum architect. Your job is to create a detailed learning roadmap for a student.
-    
-You must return ONLY a JSON object exactly matching this structure:
+
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.
+
+Return a JSON object with this exact structure:
 {
+  "skill_name": "string",
+  "difficulty_level": "beginner|intermediate|advanced",
+  "total_duration_months": number,
+  "phases": [
+    {
+      "title": "string",
+      "duration": "string",
+      "topics": [
+        {
+          "name": "string",
+          "why_important": "string",
+          "time_hours": number
+        }
+      ],
+      "projects": ["string"],
+      "resources": [
+        {
+          "title": "string",
+          "type": "string",
+          "url": "string"
+        }
+      ]
+    }
+  ],
   "milestones": ["string"],
-  "weeklyPlan": ["string"],
-  "projects": ["string"],
-  "estimatedTimeline": "string (e.g., '12 Weeks')"
+  "estimated_timeline": "string"
 }`;
 
-    const userPrompt = `Skill: ${skill}\nExperience: ${experience || 'beginner'}\nTime commitment: ${timeCommitment || '10'} hours/week\nGoal: ${learningGoal || 'get a job'}\n\nGenerate the roadmap JSON.`;
+    const userPrompt = `Create a detailed learning roadmap with these parameters:
+Skill: ${skill}
+Experience Level: ${experience || 'beginner'}
+Time Commitment: ${timeCommitment || '10'} hours per week
+Learning Goal: ${learningGoal || 'get a job'}
+
+Return only valid JSON matching the specified structure.`;
 
     const data = await generateFeatherlessJSON([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ])
 
-    return NextResponse.json(data)
+    return NextResponse.json({ roadmap: data })
 
   } catch (error: any) {
     console.error('[Roadmap API] Error:', error.message)

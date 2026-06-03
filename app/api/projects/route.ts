@@ -13,7 +13,9 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are a Project Recommendation Engine AI. Your task is to recommend a portfolio of realistic, resume-worthy projects tailored to a specific target role and user's skills.
 
-You must return ONLY a JSON object exactly matching this structure:
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.
+
+Return a JSON object with this exact structure:
 {
   "beginner": [
     {
@@ -41,7 +43,10 @@ You must return ONLY a JSON object exactly matching this structure:
   ]
 }`
 
-    const userPrompt = `Target Role: ${targetRole}\nCurrent Skills: ${(currentSkills || []).join(", ")}\n\nGenerate the project recommendations JSON.`
+    const userPrompt = `Recommend projects for this role: ${targetRole}
+Current Skills: ${(currentSkills || []).join(", ")}
+
+Return only valid JSON matching the specified structure with no additional text or markdown.`
 
     const data = await generateFeatherlessJSON([
       { role: "system", content: systemPrompt },

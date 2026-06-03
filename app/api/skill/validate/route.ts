@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateFeatherlessCompletion } from "@/lib/ai/featherless"
+import { generateFeatherlessJSON, FeatherlessServiceError } from "@/lib/services/featherlessService"
 
 export async function POST(req: Request) {
   try {
@@ -12,33 +12,48 @@ export async function POST(req: Request) {
       )
     }
 
-    const jsonFormatStr = `
-{
-  "isValid": true/false,
-  "correctedName": "Standardized skill name if misspelled, or original",
-  "category": "Frontend/Backend/Data Science/etc",
-  "description": "Short 1-sentence description"
-}`;
+    const systemPrompt = `You are a skill validator. Your job is to check if the user's input is a valid professional tech/soft skill.
 
-    const fullResponse = await generateFeatherlessCompletion([
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or extra text.
+
+Return a JSON object with this exact structure:
+{
+  "is_valid": true or false,
+  "skill_name": "string (Standardized skill name if misspelled, or original)",
+  "category": "string (e.g., Frontend, Backend, Data Science, Mobile, DevOps, etc)",
+  "description": "string (short 1-sentence description)",
+  "demand_level": "high|medium|low",
+  "confidence_score": number (0-100),
+  "validation_summary": "string (brief explanation of validity)",
+  "reasons": {
+    "pros": ["string"],
+    "cons": ["string"]
+  },
+  "alternatives": ["string"] (optional - if skill is not valid, suggest alternatives)
+}`
+
+    const userPrompt = `Validate this skill: ${skill}
+
+Return only valid JSON matching the specified structure with no additional text or markdown.`
+
+    const data = await generateFeatherlessJSON([
       {
         role: "system",
-        content: `You are a skill validator. Your job is to check if the user's input is a valid professional tech/soft skill. You must return ONLY valid JSON matching this format: ${jsonFormatStr}`
+        content: systemPrompt
       },
       {
         role: "user",
-        content: `Validate this skill: ${skill}`
+        content: userPrompt
       }
     ], { temperature: 0.1 })
 
-    // Extract JSON from response in case of markdown wrappers
-    const jsonStr = fullResponse.replace(/```json\n?|\n?```/g, '').trim();
-    const data = JSON.parse(jsonStr);
-
     return NextResponse.json(data)
 
-  } catch (error) {
-    console.error('Featherless skill validation error:', error)
+  } catch (error: any) {
+    console.error('Skill validation error:', error.message)
+    if (error instanceof FeatherlessServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     return NextResponse.json(
       { error: 'Failed to validate skill' },
       { status: 500 }

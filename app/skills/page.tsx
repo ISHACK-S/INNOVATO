@@ -22,54 +22,99 @@ function parseJSONResponse(text: string): any {
 }
 
 function FormattedResult({ result }: { result: any }) {
-  let parsedData: any = null
-  let rawText = result.answer || result.output || ""
+  // Check if result has the structured data directly
+  let parsedData = result
 
-  // Try to parse JSON from the response
-  if (rawText) {
-    parsedData = parseJSONResponse(rawText)
+  // If we have a nested answer/output, try to parse it
+  if (result.answer || result.output) {
+    let rawText = result.answer || result.output || ""
+    if (rawText) {
+      try {
+        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || rawText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          parsedData = JSON.parse(jsonMatch[1] || jsonMatch[0])
+        } else {
+          parsedData = JSON.parse(rawText)
+        }
+      } catch {
+        // Keep original result if parsing fails
+      }
+    }
   }
 
-  // If we have parsed data, display it formatted
-  if (parsedData && typeof parsedData === 'object') {
+  // If we have structured data, display it formatted
+  if (parsedData && typeof parsedData === 'object' && (parsedData.is_valid !== undefined || parsedData.skill_name)) {
     return (
       <div className="space-y-6">
-        {/* Header Section */}
+        {/* Header Section with Status Badge */}
         <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
+          <div className="flex-1">
             <h3 className="text-2xl font-bold text-foreground mb-2">
               {parsedData.skill_name || "Skill Validation"}
             </h3>
-            {parsedData.validation_summary && (
+            {parsedData.description && (
               <p className="text-muted-foreground leading-relaxed">
-                {parsedData.validation_summary}
+                {parsedData.description}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {parsedData.is_valid !== undefined && (
-              <div className={`px-4 py-2 rounded-full flex items-center gap-2 ${
+          {parsedData.is_valid !== undefined && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className={`px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap ${
                 parsedData.is_valid 
-                  ? 'bg-green-500/10 border border-green-500/30 text-green-400' 
-                  : 'bg-red-500/10 border border-red-500/30 text-red-400'
-              }`}>
-                {parsedData.is_valid ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
+                  ? 'bg-green-500/20 border border-green-500/30 text-green-400' 
+                  : 'bg-red-500/20 border border-red-500/30 text-red-400'
+              }`}
+            >
+              {parsedData.is_valid ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span className="font-medium">Valid</span>
+                </>
+              ) : (
+                <>
                   <X className="h-4 w-4" />
-                )}
-                <span className="font-medium">
-                  {parsedData.is_valid ? 'Valid' : 'Not Valid'}
-                </span>
-              </div>
-            )}
-          </div>
+                  <span className="font-medium">Not Valid</span>
+                </>
+              )}
+            </motion.div>
+          )}
         </div>
 
+        {/* Validation Summary */}
+        {parsedData.validation_summary && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 rounded-xl bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-blue-500/10 border border-indigo-500/20 backdrop-blur-sm"
+          >
+            <p className="text-muted-foreground leading-relaxed">{parsedData.validation_summary}</p>
+          </motion.div>
+        )}
+
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {parsedData.category && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl glass-panel border-violet-500/20 p-4"
+            >
+              <div className="text-sm text-muted-foreground mb-2">Category</div>
+              <div className="text-lg font-bold text-violet-400 capitalize">
+                {parsedData.category}
+              </div>
+            </motion.div>
+          )}
           {parsedData.demand_level && (
-            <div className="rounded-xl glass-panel border-indigo-500/20 p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-xl glass-panel border-indigo-500/20 p-4"
+            >
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                 <TrendingUp className="h-4 w-4" />
                 <span>Demand Level</span>
@@ -81,18 +126,23 @@ function FormattedResult({ result }: { result: any }) {
               }`}>
                 {parsedData.demand_level}
               </div>
-            </div>
+            </motion.div>
           )}
           {parsedData.confidence_score !== undefined && (
-            <div className="rounded-xl glass-panel border-indigo-500/20 p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-xl glass-panel border-indigo-500/20 p-4"
+            >
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                 <Star className="h-4 w-4" />
-                <span>Confidence Score</span>
+                <span>Confidence</span>
               </div>
               <div className="text-lg font-bold text-indigo-400">
                 {parsedData.confidence_score}%
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -100,64 +150,88 @@ function FormattedResult({ result }: { result: any }) {
         {parsedData.reasons && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {parsedData.reasons.pros && parsedData.reasons.pros.length > 0 && (
-              <div className="rounded-xl glass-panel border-green-500/20 p-5">
-                <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="rounded-xl glass-panel border-green-500/20 p-5 space-y-3"
+              >
+                <h4 className="text-lg font-bold text-green-400 flex items-center gap-2">
                   <Check className="h-5 w-5" />
                   Pros
                 </h4>
                 <ul className="space-y-2">
                   {parsedData.reasons.pros.map((pro: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2 text-muted-foreground">
+                    <li key={idx} className="flex items-start gap-2 text-muted-foreground text-sm">
                       <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
                       <span>{pro}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
             )}
             {parsedData.reasons.cons && parsedData.reasons.cons.length > 0 && (
-              <div className="rounded-xl glass-panel border-red-500/20 p-5">
-                <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="rounded-xl glass-panel border-red-500/20 p-5 space-y-3"
+              >
+                <h4 className="text-lg font-bold text-red-400 flex items-center gap-2">
                   <X className="h-5 w-5" />
                   Cons
                 </h4>
                 <ul className="space-y-2">
                   {parsedData.reasons.cons.map((con: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2 text-muted-foreground">
+                    <li key={idx} className="flex items-start gap-2 text-muted-foreground text-sm">
                       <X className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
                       <span>{con}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
             )}
           </div>
         )}
 
         {/* Alternatives */}
         {parsedData.alternatives && parsedData.alternatives.length > 0 && (
-          <div className="rounded-xl glass-panel border-blue-500/20 p-5">
-            <h4 className="text-lg font-bold text-blue-400 mb-4">Alternative Skills</h4>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl glass-panel border-blue-500/20 p-5 space-y-3"
+          >
+            <h4 className="text-lg font-bold text-blue-400">💡 Alternative Skills to Consider</h4>
             <div className="flex flex-wrap gap-2">
               {parsedData.alternatives.map((alt: string, idx: number) => (
-                <span
+                <motion.span
                   key={idx}
-                  className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm font-medium hover:bg-blue-500/30 hover:border-blue-500/50 transition-all cursor-default"
                 >
                   {alt}
-                </span>
+                </motion.span>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     )
   }
 
   // Fallback to formatted text display
+  if (result.answer || result.output) {
+    let rawText = result.answer || result.output || ""
+    return (
+      <div className="text-foreground leading-relaxed space-y-4 max-w-3xl">
+        {rawText}
+      </div>
+    )
+  }
+
   return (
-    <div className="text-foreground whitespace-pre-wrap leading-relaxed">
-      {rawText}
+    <div className="text-muted-foreground">
+      No validation data received
     </div>
   )
 }
