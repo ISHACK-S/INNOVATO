@@ -271,13 +271,10 @@ npm run dev
 
 ## 👨‍💻 Team
 
-### Adithyan
-
-Founder & Product Lead
-
-Artificial Intelligence & Data Science
-
-Focused on building AI-powered systems that improve education, employability, and student growth.
+### Adithyan Jagadeeshwaran 
+### Ishack S
+### Mohammed Suhail Rafaek
+### Vasunthra Sathyamoorthy
 
 ---
 
